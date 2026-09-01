@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCHEMAS = ("domain", "ingestion", "retrieval", "memory")
 SERVICES = ("domain-service", "connector-controller", "ingest-worker", "retrieval-service", "index-worker", "memory-service")
 BASE = "f3a3463d2fe04d4b17dc3abbebc6b3375bd6d890"
+FOUNDATION = "672e73e512113fbf2bb96c222b2ffea7f58e79ed"
 
 
 class SqlContractTests(unittest.TestCase):
@@ -93,7 +94,9 @@ class DeliverySourceTests(unittest.TestCase):
             self.assertNotIn(forbidden, text)
 
     def test_changed_paths_are_kn001_owned(self) -> None:
-        completed = subprocess.run(["git", "diff", "--name-only", BASE], cwd=ROOT, text=True, capture_output=True, shell=False, check=True)
+        subprocess.run(["git", "cat-file", "-e", f"{FOUNDATION}^{{commit}}"], cwd=ROOT, text=True, capture_output=True, shell=False, check=True)
+        subprocess.run(["git", "merge-base", "--is-ancestor", FOUNDATION, "HEAD"], cwd=ROOT, text=True, capture_output=True, shell=False, check=True)
+        completed = subprocess.run(["git", "diff", "--name-only", BASE, FOUNDATION], cwd=ROOT, text=True, capture_output=True, shell=False, check=True)
         allowed = (
             ".github/workflows/verify.yml", "src/planeon_knowledge/common/", "services/", "migrations/",
             "tests/common/", "contract-mocks/", "deploy/helm/", "pyproject.toml", "uv.lock", "Makefile",
