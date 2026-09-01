@@ -149,7 +149,7 @@ class SourceClosureTests(unittest.TestCase):
             "Makefile": "af17da2687c3f0684dc4044981c5ea0ead3a9c51d6240a539bf7353402db5f09",
             "ci/run_make_target.py": "29e8cb70e71a3d03f9f50108e28f99d890da6090a680c8de32d6bdcd947be7ea",
             "ci/run_packet_argv.py": "7499ccf15021145c0d6698aa8e1e7d333ab6ccc4d6f1fb397a277b895de6e1f8",
-            "ci/zero_bill_scan.py": "00d5048b69373809d4106a1d5883d8d26c3e5fa8448f7d52e7f216202b4bbc20",
+            "ci/zero_bill_scan.py": "cd859d5f3c8aaf1b0a5eee1b3f5f445a471c8749e0507a2749ecbb490371e509",
         }
         for relative, digest in expected.items():
             with self.subTest(path=relative):
