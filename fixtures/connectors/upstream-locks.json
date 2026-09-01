@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "planeon.knowledge.ingestion-locks/v1",
+  "contracts": {
+    "commit": "2146278a95344cd2a8e22596b2f315b46edffc88",
+    "boundedQueryVectorSha256": "086cc9768150f56cde0b981082459b71f1c8e14754019452f3465fc608787169",
+    "checkpointVectorSha256": "b0ad9ba9db833e8da91748af7a6a4861e03f8797621e57d04a9d8cbe590ff551",
+    "connectorProfileVectorSha256": "cf5b91654f40a927cb490b060563d31a220e061321697cd2dfc1c4b2565bed20",
+    "dataBatchVectorSha256": "c631dc777d78f48874cc0a94c13e34d21ea4495b09bc8d66a90d1b88a536b056",
+    "mappingSha256": "81cc6d9ed39099534b61e45830f95af6bb215854f43dc21c37dd8080055445a3",
+    "workerProfileVectorSha256": "721b336d4b190094e04d46f63ce9b8d596de4a080aa17e628b45fefddf761375"
+  },
+  "industryPack": {
+    "commit": "a4d3df9b169e95c285e22a2fdb2b4c9d711230e2",
+    "contractBindingSha256": "d0f9a1ce1635a2ec35fe44b2e16061bc43ec5615ed4d16e481a456918af7783c",
+    "datasetLockSha256": "80e43a1167dcabe9ba60af5871ace462a777fb0c72d0026220a792dea3ec2a11",
+    "illustrativePolicySha256": "7b496afdd8cd9749bf261ba4752e474a8062d54368b735a6c2553090db107c59",
+    "sourceInventorySha256": "863a362490b64b91fa725e8de8a268d2b4863c37d1f25dda8e853980861b6e72"
+  },
+  "knowledgePlane": {
+    "commit": "187a3d6234d7e53392acc6984221fa314d40cf93"
+  }
+}

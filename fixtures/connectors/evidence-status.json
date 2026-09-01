@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "planeon.evidence-axes/v1",
+  "source": "PACKET_CANDIDATE",
+  "ci": "PENDING_REQUIRED_CHECKS",
+  "merge": "PENDING_REVIEW",
+  "artifact": "NOT_BUILT",
+  "postgresql": "NOT_RUN_ENV_UNAVAILABLE",
+  "sourceConnectivity": "NOT_RUN_ENV_UNAVAILABLE",
+  "deployment": "NOT_RUN_ENV_UNAVAILABLE",
+  "runtime": "NOT_RUN_ENV_UNAVAILABLE",
+  "assurance": "NOT_RUN_ENV_UNAVAILABLE",
+  "tenantAcceptance": "PENDING_TENANT_AUTHORITY"
+}

@@ -56,7 +56,7 @@ def main() -> None:
         "pull_request:", "workflow_dispatch:", "permissions:\n  contents: read",
         "runs-on: [self-hosted, harness-engineering, ephemeral, credential-free]",
         "timeout-minutes: 15", "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
-        "persist-credentials: false", "fetch-depth: 2", "run: /opt/planeon/bin/harness-offline-launch",
+        "persist-credentials: false", "fetch-depth: 0", "run: /opt/planeon/bin/harness-offline-launch",
     )
     if any(token not in workflow for token in required_workflow) or workflow.count("uses:") != 1 or workflow.count("run:") != 1:
         refuse("workflow is outside the pinned two-step credential-free contract")

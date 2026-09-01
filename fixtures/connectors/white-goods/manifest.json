@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "planeon.knowledge.connector-parity/v1",
+  "authorship": "INDEPENDENT_SYNTHETIC",
+  "vectors": [
+    {"connectorKind":"FILE","file":"file.csv","mediaType":"text/csv","recordCount":4},
+    {"connectorKind":"HTTP","file":"http.json","mediaType":"application/json","recordCount":4},
+    {"connectorKind":"POSTGRESQL","file":"postgresql.ndjson","mediaType":"application/x-ndjson","recordCount":4},
+    {"connectorKind":"EVENT","file":"event.ndjson","mediaType":"application/x-ndjson","recordCount":4}
+  ]
+}

@@ -4,6 +4,11 @@
 {{- $identity := required "identity.existingConfigMap is required" .Values.identity.existingConfigMap }}
 {{- $policy := required "policy.existingConfigMap is required" .Values.policy.existingConfigMap }}
 {{- $store := required "ownedStore.existingSecret is required" .Values.ownedStore.existingSecret }}
+{{- $endpoints := required "endpointGrants.existingConfigMap is required" .Values.endpointGrants.existingConfigMap }}
+{{- $credentials := required "credentialReferences.existingSecret is required" .Values.credentialReferences.existingSecret }}
+{{- $staging := required "staging.existingConfigMap is required" .Values.staging.existingConfigMap }}
+{{- $sourcePolicy := required "sourceNetworkPolicy.existingConfigMap is required" .Values.sourceNetworkPolicy.existingConfigMap }}
+{{- $domains := required "domainBindings.existingConfigMap is required" .Values.domainBindings.existingConfigMap }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -39,6 +44,11 @@ spec:
             - configMapRef: {name: "{{ $identity }}"}
             - configMapRef: {name: "{{ $policy }}"}
             - secretRef: {name: "{{ $store }}"}
+            - configMapRef: {name: "{{ $endpoints }}"}
+            - secretRef: {name: "{{ $credentials }}"}
+            - configMapRef: {name: "{{ $staging }}"}
+            - configMapRef: {name: "{{ $sourcePolicy }}"}
+            - configMapRef: {name: "{{ $domains }}"}
           ports: [{name: health, containerPort: 8080, protocol: TCP}]
           livenessProbe: {httpGet: {path: /health/live, port: health}}
           readinessProbe: {httpGet: {path: /health/ready, port: health}}

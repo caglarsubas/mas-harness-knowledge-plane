@@ -1,0 +1,9 @@
+{
+  "packetId": "KN-DATA-001",
+  "schemaVersion": "harness.planeon.ai/make-target-descriptor/v1alpha1",
+  "targets": [
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "tests/connectors/test_connector_parity.py"]], "name": "connector-parity"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/connectors", "-p", "test_contract_*.py"]], "name": "connector-contract"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/connectors", "-p", "test_security_*.py"]], "name": "security"}
+  ]
+}

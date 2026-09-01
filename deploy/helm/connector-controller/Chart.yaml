@@ -1,6 +1,6 @@
 apiVersion: v2
 name: planeon-connector-controller
-description: Inert KN-001 source chart for the health-only connector controller
+description: Inert digest-bound KN-DATA-001 connector controller source chart
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"

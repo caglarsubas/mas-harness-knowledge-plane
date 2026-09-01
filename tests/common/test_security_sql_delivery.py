@@ -85,7 +85,7 @@ class DeliverySourceTests(unittest.TestCase):
         self.assertIn("runs-on: [self-hosted, harness-engineering, ephemeral, credential-free]", text)
         self.assertIn("actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683", text)
         self.assertIn("persist-credentials: false", text)
-        self.assertIn("fetch-depth: 2", text)
+        self.assertIn("fetch-depth: 0", text)
         self.assertEqual(text.count("uses:"), 1)
         self.assertEqual(text.count("run:"), 1)
         self.assertIn("run: /opt/planeon/bin/harness-offline-launch", text)

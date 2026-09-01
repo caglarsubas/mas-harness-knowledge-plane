@@ -1,0 +1,5 @@
+serial,plant,status,temp_c
+WG-1001,ankara,READY,18.4
+WG-1002,ankara,HOLD,22.1
+WG-1003,bursa,READY,19.0
+WG-1004,bursa,INSPECT,20.6

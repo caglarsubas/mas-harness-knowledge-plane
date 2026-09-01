@@ -1,0 +1,4 @@
+{"eventId":"evt-101","eventType":"cycle.finished","partition":0,"sequence":101}
+{"eventId":"evt-102","eventType":"cycle.finished","partition":0,"sequence":102}
+{"eventId":"evt-103","eventType":"alert.raised","partition":0,"sequence":103}
+{"eventId":"evt-104","eventType":"cycle.finished","partition":0,"sequence":104}
