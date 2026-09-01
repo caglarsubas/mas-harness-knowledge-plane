@@ -55,6 +55,16 @@ class SqlContractTests(unittest.TestCase):
 
 
 class PackagingAndDeploymentTests(unittest.TestCase):
+    def test_foundation_prefetch_uses_cumulative_checkout_boundary(self) -> None:
+        source = (ROOT / "ci/handlers/prefetch.py").read_text(encoding="utf-8")
+        foundation = "672e73e512113fbf2bb96c222b2ffea7f58e79ed"
+        self.assertIn(f'FOUNDATION = "{foundation}"', source)
+        self.assertIn('f"{FOUNDATION}^{{commit}}"', source)
+        self.assertIn('"merge-base", "--is-ancestor", FOUNDATION, "HEAD"', source)
+        self.assertEqual(source.count("FOUNDATION"), 3)
+        self.assertEqual(source.count("BASE"), 2)
+        self.assertIn('"base": {"commit": BASE, "repository": "mas-harness-knowledge-plane"}', source)
+
     def test_root_project_remains_dependency_free_and_foundation_files_are_unchanged(self) -> None:
         project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
         lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
