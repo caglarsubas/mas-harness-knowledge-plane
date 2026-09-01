@@ -1,0 +1,20 @@
+[project]
+name = "planeon-domain-service-semantic-runtime"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = [
+  "html5rdf==1.2.1",
+  "owlrl==7.6.2",
+  "packaging==26.3",
+  "prettytable==3.18.0",
+  "pyparsing==3.3.2",
+  "pyshacl==0.40.1",
+  "rdflib==7.6.0",
+  "wcwidth==0.8.3",
+]
+
+[tool.planeon]
+provider = "planeon.rdflib+planeon.pyshacl"
+network = "disabled"
+imports = "none"
+jena = "PROVIDER_UNAVAILABLE"

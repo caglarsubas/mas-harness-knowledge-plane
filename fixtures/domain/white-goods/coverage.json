@@ -1,0 +1,22 @@
+{
+  "businessConcepts": [
+    "AcceptanceOutcome",
+    "AccountableRole",
+    "BusinessObjective",
+    "CriticalToQuality",
+    "EvidenceClass",
+    "KeyPerformanceIndicator",
+    "ManufacturingProcess",
+    "ProcessStep",
+    "ProductFamily",
+    "ProductModel",
+    "QualityCharacteristic"
+  ],
+  "domainId": "white-goods.enterprise",
+  "productFamilies": ["cooking", "dish-care", "laundry", "refrigeration"],
+  "publication": false,
+  "runtime": false,
+  "assurance": false,
+  "tenantAcceptance": false,
+  "schemaVersion": "planeon.knowledge.white-goods-coverage/v1"
+}

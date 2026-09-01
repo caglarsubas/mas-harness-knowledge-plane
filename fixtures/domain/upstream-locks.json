@@ -1,0 +1,32 @@
+{
+  "industryPack": {
+    "artifacts": {
+      "acceptedAnswers": "sha256:b76421c1f0cfa258c97f159a48f0f8f53782ec6415384b9fed3acc57119da052",
+      "contractsLock": "sha256:81d7470e28b452cbf8de2e4903b47b5335709b09cf6375f78481057973d75c91",
+      "invalidGraph": "sha256:f659112808bf9ccd9dd5a4efc7425a30dfeb61cde27c7f8644760918611431e2",
+      "ontology": "sha256:ff512027f26c2a61522086d7c0ea854194d1631325dcd1007ed3803bb4262310",
+      "pack": "sha256:e20d3b6723698a298b93a8dc45743b6644d7e443e1c4fd0450a2c344a9238bf1",
+      "pyproject": "sha256:331f31f6fbe122a860325e23256b95f2cdbfcffd82e3f95e3a0d99fde332b1ba",
+      "shapes": "sha256:aaca9fb6b50e205aee3d93ab0ec520fa4ef6482652b27a1b15f5b765b65410b0",
+      "uvLock": "sha256:12ab191dedad208ea14f88a388006c395b63fbc4e9f23ea6583d802a30653e8f",
+      "validGraph": "sha256:e8b5d7244788360432f119361db7f07ad40bd8ac8a7848e7f70f7bd7d94b3b67"
+    },
+    "commit": "714e311b550798c230d440c869d36f7ad5a857b4",
+    "repository": "mas-harness-industry-packs"
+  },
+  "knowledgeFoundation": {
+    "commit": "672e73e512113fbf2bb96c222b2ffea7f58e79ed",
+    "repository": "mas-harness-knowledge-plane",
+    "sourceDigests": {
+      "canonical": "sha256:90f000f5a09a12c3cc2f55b659cd1c563751f268fc4173756563b2d6cf46eb7f",
+      "domainFoundationSql": "sha256:9a5af7f8b78370ff8a59f7bb1b4303bd7bcf58b603bb198fca3cf80a390311f2",
+      "health": "sha256:ffa409fb9acfb85021abb4d9874ad983206e3433cd817106ab13c2103f611e95",
+      "models": "sha256:c52af1605f0e7c5ee0a0b6734cebe4cf1c46e32db6318fadef733a8e722792f6",
+      "packetArgv": "sha256:43d39673f9ba46d3fb450579fa5d40a78c9e7345728bfc41bb3f06e22ec01cab",
+      "rootDispatcher": "sha256:29e8cb70e71a3d03f9f50108e28f99d890da6090a680c8de32d6bdcd947be7ea",
+      "services": "sha256:24cc9d433600d48758ff0810d20d661a24b0f771e0b0533583b17d82d775e319",
+      "zeroBillScanner": "sha256:00d5048b69373809d4106a1d5883d8d26c3e5fa8448f7d52e7f216202b4bbc20"
+    }
+  },
+  "schemaVersion": "planeon.knowledge.domain-upstream-locks/v1"
+}

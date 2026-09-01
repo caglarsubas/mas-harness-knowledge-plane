@@ -1,0 +1,17 @@
+{
+  "licenseInventorySha256": "d4875eb83cfca4774fd0c84f91647bda759cc32cd0beb75191600c68894f7951",
+  "packages": [
+    {"license": "MIT", "name": "html5rdf", "sha256": "1f519121bc366af3e485310dc8041d2e86e5173c1a320fac3dc9d2604069b83e", "version": "1.2.1", "wheel": "html5rdf-1.2.1-py2.py3-none-any.whl"},
+    {"license": "W3C-20150513", "name": "owlrl", "sha256": "83347bf7f133979e87b2b18695d51d25510b99cec3f6919b5df05d4fbf058ae0", "version": "7.6.2", "wheel": "owlrl-7.6.2-py3-none-any.whl"},
+    {"license": "Apache-2.0 OR BSD-2-Clause", "name": "packaging", "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c", "version": "26.3", "wheel": "packaging-26.3-py3-none-any.whl"},
+    {"license": "BSD-3-Clause", "name": "prettytable", "sha256": "b3346e0e6f79180833aebaac088ae926340586cf6d7d991b9eb125b65f72313a", "version": "3.18.0", "wheel": "prettytable-3.18.0-py3-none-any.whl"},
+    {"license": "MIT", "name": "pyparsing", "sha256": "850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", "version": "3.3.2", "wheel": "pyparsing-3.3.2-py3-none-any.whl"},
+    {"license": "Apache-2.0", "name": "pyshacl", "sha256": "27dd58c8ddfa103303b4a8c40b2c666332ffc912dbcd3137f7adc7b7bc5e6bda", "version": "0.40.1", "wheel": "pyshacl-0.40.1-py3-none-any.whl"},
+    {"license": "BSD-3-Clause", "name": "rdflib", "sha256": "30c0a3ebf4c0e09215f066be7246794b6492e054e782d7ac2a34c9f70a15e0dd", "version": "7.6.0", "wheel": "rdflib-7.6.0-py3-none-any.whl"},
+    {"license": "MIT", "name": "wcwidth", "sha256": "d5b73dba6158a595ec9370350e7f2637bcac8d6c5e4fde34f30fcffb6103a5e4", "version": "0.8.3", "wheel": "wcwidth-0.8.3-py3-none-any.whl"}
+  ],
+  "python": "3.12.14",
+  "schemaVersion": "planeon.knowledge.semantic-dependencies/v1",
+  "toolchainInventorySha256": "b1db59b19689e240d1224f0a116f19072a10f0cc8baa5ba34a30cdd37feb896a",
+  "wheelhouseInventorySha256": "79f00f38eca25736612634e31b0a3909c1f34af7ffd18bafbc9292a3c6691957"
+}

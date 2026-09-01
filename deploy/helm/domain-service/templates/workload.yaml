@@ -4,6 +4,8 @@
 {{- $identity := required "identity.existingConfigMap is required" .Values.identity.existingConfigMap }}
 {{- $policy := required "policy.existingConfigMap is required" .Values.policy.existingConfigMap }}
 {{- $store := required "ownedStore.existingSecret is required" .Values.ownedStore.existingSecret }}
+{{- $semantic := required "semanticProvider.existingConfigMap is required" .Values.semanticProvider.existingConfigMap }}
+{{- $semanticDigest := required "semanticProvider.bundleDigest is required" .Values.semanticProvider.bundleDigest }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -39,6 +41,10 @@ spec:
             - configMapRef: {name: "{{ $identity }}"}
             - configMapRef: {name: "{{ $policy }}"}
             - secretRef: {name: "{{ $store }}"}
+            - configMapRef: {name: "{{ $semantic }}"}
+          env:
+            - name: PLANEON_SEMANTIC_BUNDLE_DIGEST
+              value: "{{ $semanticDigest }}"
           ports: [{name: health, containerPort: 8080, protocol: TCP}]
           livenessProbe: {httpGet: {path: /health/live, port: health}}
           readinessProbe: {httpGet: {path: /health/ready, port: health}}

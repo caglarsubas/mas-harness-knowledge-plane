@@ -1,0 +1,20 @@
+@prefix wg: <urn:planeon:white-goods.enterprise:> .
+
+wg:role.quality-director a wg:AccountableRole .
+wg:objective.first-pass-yield a wg:BusinessObjective ; wg:hasOwner wg:role.quality-director .
+
+wg:family.refrigeration a wg:ProductFamily .
+wg:family.laundry a wg:ProductFamily .
+wg:family.dish-care a wg:ProductFamily .
+wg:family.cooking a wg:ProductFamily .
+wg:model.refrigerator-r1 a wg:ProductModel ; wg:hasProductFamily wg:family.refrigeration .
+wg:model.washer-w1 a wg:ProductModel ; wg:hasProductFamily wg:family.laundry .
+wg:model.dishwasher-d1 a wg:ProductModel ; wg:hasProductFamily wg:family.dish-care .
+wg:model.oven-o1 a wg:ProductModel ; wg:hasProductFamily wg:family.cooking .
+
+wg:process.final-assembly a wg:ManufacturingProcess ; wg:hasProcessStep wg:step.seal-inspection .
+wg:step.seal-inspection a wg:ProcessStep ; wg:hasCTQ wg:ctq.seal-integrity .
+wg:ctq.seal-integrity a wg:CriticalToQuality ; wg:hasKPI wg:kpi.leak-free-rate .
+wg:kpi.leak-free-rate a wg:KeyPerformanceIndicator ; wg:hasOutcome wg:outcome.accepted .
+wg:outcome.accepted a wg:AcceptanceOutcome ; wg:hasEvidence wg:evidence.inspection-record .
+wg:evidence.inspection-record a wg:EvidenceClass .

@@ -25,7 +25,7 @@ EXPECTED_EXECUTION = {
     "offlineEnvironment": OFFLINE_ENV,
 }
 FORBIDDEN_EXECUTABLES = {"bash", "dash", "env", "sh", "zsh"}
-FORBIDDEN_OFFLINE_TOKENS = {"add", "curl", "download", "fetch", "install", "npx", "pull", "sync", "wget"}
+FORBIDDEN_OFFLINE_TOKENS = {"add", "curl", "download", "fetch", "install", "npx", "prefetch", "pull", "sync", "wget"}
 CHILD_ENV = {
     "CI", "GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "GITHUB_REPOSITORY", "GITHUB_SHA",
     "GITHUB_WORKSPACE", "HOME", "LANG", "LC_ALL", "LOGNAME", "PATH",
@@ -69,10 +69,10 @@ def inline_json(text: str, field: str) -> Any:
 
 def command_arrays(text: str, field: str) -> list[list[str]]:
     value = inline_json(text, field)
-    if not isinstance(value, list):
-        raise PacketError(f"packet {field} must be an array")
+    if not isinstance(value, list) or not 1 <= len(value) <= 32:
+        raise PacketError(f"packet {field} must be a bounded non-empty array")
     for command in value:
-        if not isinstance(command, list) or not command or not all(isinstance(item, str) and item and "\x00" not in item and "\n" not in item for item in command):
+        if not isinstance(command, list) or not 1 <= len(command) <= 64 or sum(len(item) for item in command if isinstance(item, str)) > 4096 or not all(isinstance(item, str) and item and "\x00" not in item and "\n" not in item and "\r" not in item for item in command):
             raise PacketError(f"packet {field} contains invalid argv")
         if Path(command[0]).name in FORBIDDEN_EXECUTABLES:
             raise PacketError("shell transport is forbidden")
@@ -104,12 +104,14 @@ def main() -> int:
         raise PacketError("offlineExecution contract mismatch")
     prefetch = command_arrays(text, "prefetchCommands")
     acceptance = command_arrays(text, "offlineAcceptanceCommands")
-    if prefetch != [["make", "prefetch"]] or acceptance != [["make", "common-contract"], ["make", "security"]]:
-        raise PacketError("KN-001 command sequence mismatch")
+    if prefetch != [["make", "prefetch"]]:
+        raise PacketError("prefetch command must be the local-only Make entry point")
     for command in acceptance:
         overlap = {argument.casefold() for argument in command} & FORBIDDEN_OFFLINE_TOKENS
         if overlap:
             raise PacketError(f"offline argv contains forbidden token: {sorted(overlap)[0]}")
+        if command[:2] == ["make", "verify-offline"]:
+            raise PacketError("recursive verify-offline is forbidden")
     environment = {name: value for name, value in os.environ.items() if name in CHILD_ENV}
     if environment.get("HARNESS_OFFLINE_ENFORCED") != "1" or not environment.get("HARNESS_OFFLINE_BACKEND") or not environment.get("HARNESS_OFFLINE_SESSION_ID"):
         raise PacketError("OS-enforced isolation identity is required")

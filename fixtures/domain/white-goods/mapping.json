@@ -1,0 +1,21 @@
+{
+  "assertions": [
+    {
+      "provenanceDigests": ["sha256:3333333333333333333333333333333333333333333333333333333333333333"],
+      "sourceFieldDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "targetTerm": "urn:planeon:white-goods.enterprise:CriticalToQuality",
+      "transformationKind": "DIRECT"
+    },
+    {
+      "provenanceDigests": ["sha256:4444444444444444444444444444444444444444444444444444444444444444"],
+      "sourceFieldDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "targetTerm": "urn:planeon:white-goods.enterprise:KeyPerformanceIndicator",
+      "transformationKind": "UNIT"
+    }
+  ],
+  "createdAt": "2026-01-01T00:00:00Z",
+  "mappingId": "white-goods.quality-mapping",
+  "ownersDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "sourceSchemaDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+  "version": "1.0.0"
+}

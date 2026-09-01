@@ -1,0 +1,24 @@
+@prefix wg: <urn:planeon:white-goods.enterprise:> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+
+wg:BusinessObjective a owl:Class .
+wg:AccountableRole a owl:Class .
+wg:ProductFamily a owl:Class .
+wg:ProductModel a owl:Class .
+wg:ManufacturingProcess a owl:Class .
+wg:ProcessStep a owl:Class .
+wg:QualityCharacteristic a owl:Class .
+wg:CriticalToQuality a owl:Class ; rdfs:subClassOf wg:QualityCharacteristic .
+wg:KeyPerformanceIndicator a owl:Class .
+wg:AcceptanceOutcome a owl:Class .
+wg:EvidenceClass a owl:Class .
+
+wg:hasOwner a owl:ObjectProperty ; rdfs:domain wg:BusinessObjective ; rdfs:range wg:AccountableRole .
+wg:hasProductFamily a owl:ObjectProperty ; rdfs:domain wg:ProductModel ; rdfs:range wg:ProductFamily .
+wg:hasProcessStep a owl:ObjectProperty ; rdfs:domain wg:ManufacturingProcess ; rdfs:range wg:ProcessStep .
+wg:hasCTQ a owl:ObjectProperty ; rdfs:domain wg:ProcessStep ; rdfs:range wg:CriticalToQuality .
+wg:hasKPI a owl:ObjectProperty ; rdfs:domain wg:CriticalToQuality ; rdfs:range wg:KeyPerformanceIndicator .
+wg:hasOutcome a owl:ObjectProperty ; rdfs:domain wg:KeyPerformanceIndicator ; rdfs:range wg:AcceptanceOutcome .
+wg:hasEvidence a owl:ObjectProperty ; rdfs:domain wg:AcceptanceOutcome ; rdfs:range wg:EvidenceClass .
