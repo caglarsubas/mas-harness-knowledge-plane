@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "planeon.knowledge.readiness-parity/v1",
+  "authorship": "INDEPENDENT_SYNTHETIC",
+  "vectors": [
+    {"id":"pass-http","connectorKind":"HTTP","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":0,"classifiedCount":4,"provenancedCount":4,"latestObservationAt":"2025-12-31T23:50:00Z","decision":"PASS","reasonCode":null},
+    {"id":"warn-freshness-event","connectorKind":"EVENT","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":0,"classifiedCount":4,"provenancedCount":4,"latestObservationAt":"2025-12-31T23:00:00Z","decision":"WARN","reasonCode":"FRESHNESS_NEEDS_INPUT"},
+    {"id":"missing-file","connectorKind":"FILE","expectedCount":4,"observedCount":0,"nonnullCount":0,"duplicateCount":0,"classifiedCount":0,"provenancedCount":0,"latestObservationAt":null,"decision":"FAIL","reasonCode":"MISSING_DATA"},
+    {"id":"incomplete-postgresql","connectorKind":"POSTGRESQL","expectedCount":4,"observedCount":4,"nonnullCount":2,"duplicateCount":0,"classifiedCount":4,"provenancedCount":4,"latestObservationAt":"2025-12-31T23:50:00Z","decision":"FAIL","reasonCode":"INCOMPLETE_DATA"},
+    {"id":"stale-http","connectorKind":"HTTP","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":0,"classifiedCount":4,"provenancedCount":4,"latestObservationAt":"2025-12-31T20:00:00Z","decision":"FAIL","reasonCode":"STALE_DATA"},
+    {"id":"duplicate-event","connectorKind":"EVENT","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":1,"classifiedCount":4,"provenancedCount":4,"latestObservationAt":"2025-12-31T23:50:00Z","decision":"FAIL","reasonCode":"DUPLICATE_DATA"},
+    {"id":"unclassified-file","connectorKind":"FILE","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":0,"classifiedCount":2,"provenancedCount":4,"latestObservationAt":"2025-12-31T23:50:00Z","decision":"FAIL","reasonCode":"UNCLASSIFIED_DATA"},
+    {"id":"unprovenanced-postgresql","connectorKind":"POSTGRESQL","expectedCount":4,"observedCount":4,"nonnullCount":4,"duplicateCount":0,"classifiedCount":4,"provenancedCount":2,"latestObservationAt":"2025-12-31T23:50:00Z","decision":"FAIL","reasonCode":"UNPROVENANCED_DATA"}
+  ]
+}

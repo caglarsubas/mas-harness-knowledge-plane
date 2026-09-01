@@ -370,6 +370,7 @@ class CheckpointCandidate:
     organization_id: str
     source_id: str
     source_version_digest: str
+    partition: str | None
     checkpoint_digest: str
     observed_at: str
 
@@ -377,6 +378,8 @@ class CheckpointCandidate:
         uuid_text(self.organization_id, "organizationId")
         uuid_text(self.source_id, "sourceId")
         digest(self.source_version_digest, "sourceVersionDigest")
+        if self.partition is not None:
+            token(self.partition, "partition")
         digest(self.checkpoint_digest, "checkpointDigest")
         utc_seconds(self.observed_at, "observedAt")
 
@@ -428,6 +431,7 @@ class StagedBatch:
     checkpoint_candidate_digest: str
     media_type: str
     connector_kind: ConnectorKind
+    partition: str | None
     state: BatchState
     record_count: int
     byte_count: int
@@ -452,12 +456,38 @@ class StagedBatch:
         ):
             digest(value, field)
         media_type(self.media_type)
+        if self.partition is not None:
+            token(self.partition, "partition")
         if not isinstance(self.connector_kind, ConnectorKind) or self.state is not BatchState.STAGED:
             raise ValueError("staged batch kind/state is invalid")
         positive_int(self.record_count, "recordCount", 10_000)
         positive_int(self.byte_count, "byteCount", 8 * 1024 * 1024)
         positive_int(self.fencing_token, "fencingToken", 2**63 - 1)
         utc_seconds(self.staged_at, "stagedAt")
+        if self.partition is not None and self.batch_digest != canonical_digest(self.digest_body()):
+            raise ValueError("staged batch digest mismatch")
+
+    def digest_body(self) -> dict[str, object]:
+        return {
+            "organizationId": self.organization_id,
+            "batchId": self.batch_id,
+            "sourceId": self.source_id,
+            "sourceVersionDigest": self.source_version_digest,
+            "expectedSchemaDigest": self.expected_schema_digest,
+            "activeDomainVersionDigest": self.active_domain_version_digest,
+            "semanticMappingDigest": self.semantic_mapping_digest,
+            "materialDigest": self.material_digest,
+            "checkpointCandidateDigest": self.checkpoint_candidate_digest,
+            "mediaType": self.media_type,
+            "connectorKind": self.connector_kind.value,
+            "partition": self.partition,
+            "state": self.state.value,
+            "recordCount": self.record_count,
+            "byteCount": self.byte_count,
+            "recordSetDigest": self.record_set_digest,
+            "fencingToken": self.fencing_token,
+            "stagedAt": self.staged_at,
+        }
 
 
 @dataclass(frozen=True, slots=True)

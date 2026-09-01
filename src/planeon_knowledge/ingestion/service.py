@@ -30,7 +30,36 @@ from .contracts import (
     public_dict,
 )
 from .leases import LeaseFailure, acquire, assert_current, release, renew
-from .store import InMemoryIngestionStore, LeaseKey, SourceKey, StoreFailure, StoreState
+from .evidence import ReadinessEvidenceRecord, build_evidence, build_event
+from .provenance import ProvenanceEdge, ProvenanceGraph, ProvenanceNode, build_graph
+from .readiness import (
+    BatchCommit,
+    CheckpointRevision,
+    DataReadinessAssessment,
+    MeasurementObservation,
+    OwnerApprovalAttestation,
+    ReadinessDecision,
+    ReadinessFailure,
+    ReadinessFinding,
+    ReadinessPolicyObservation,
+    SourceReadinessRevision,
+    SourceReadinessState,
+    evaluate_readiness,
+)
+from .retries import (
+    DeadLetterRecord,
+    DeadLetterReview,
+    ReadinessWorkRevision,
+    RetryFailure,
+    WorkState,
+    build_dead_letter,
+    build_review,
+    claim_work,
+    fail_work,
+    finish_work,
+    new_work,
+)
+from .store import InMemoryIngestionStore, LeaseKey, SourceKey, StoreState
 
 
 class IngestionFailure(ValueError):
@@ -62,6 +91,22 @@ def source_scope_digest(organization_id: str, source_id: str) -> str:
 
 def batch_scope_digest(organization_id: str, batch_id: str) -> str:
     return canonical_digest({"organizationId": organization_id, "batchId": batch_id})
+
+
+def readiness_scope_digest(organization_id: str, source_id: str) -> str:
+    return canonical_digest({"organizationId": organization_id, "sourceId": source_id, "scope": "readiness"})
+
+
+def work_scope_digest(organization_id: str, work_id: str) -> str:
+    return canonical_digest({"organizationId": organization_id, "workId": work_id})
+
+
+def assessment_scope_digest(organization_id: str, assessment_id: str) -> str:
+    return canonical_digest({"organizationId": organization_id, "assessmentId": assessment_id})
+
+
+def dead_letter_scope_digest(organization_id: str, dead_letter_id: str) -> str:
+    return canonical_digest({"organizationId": organization_id, "deadLetterId": dead_letter_id})
 
 
 class IngestionService:
@@ -656,7 +701,7 @@ class IngestionService:
             raise IngestionFailure("SOURCE_NOT_FOUND")
         if current_source_revision.revision != expected_revision:
             raise IngestionFailure("STALE_REVISION")
-        if current_source_revision.state is not SourceState.VALID:
+        if current_source_revision.state not in {SourceState.VALID, SourceState.SAMPLED}:
             raise IngestionFailure("TRANSITION_FORBIDDEN")
         lease_key: LeaseKey = (identity.organization_id, source_id, lease.partition)
         current_lease = self.store.read(lambda state: state.lease_revisions.get(lease_key, [None])[-1])
@@ -728,7 +773,7 @@ class IngestionService:
 
         def operation(state: StoreState) -> SourceRevision:
             current = state.source_revisions[key][-1]
-            if current.revision != expected_revision or current.state is not SourceState.VALID:
+            if current.revision != expected_revision or current.state not in {SourceState.VALID, SourceState.SAMPLED}:
                 raise IngestionFailure("TRANSITION_FORBIDDEN")
             sampling = SourceRevision(source.organization_id, source.source_id, source.resource_digest, expected_revision + 1, SourceState.SAMPLING, "SOURCE_SAMPLING_STARTED", self.now(), correlation_id)
             invalid = SourceRevision(source.organization_id, source.source_id, source.resource_digest, expected_revision + 2, SourceState.INVALID, reason_code, self.now(), correlation_id)
@@ -761,7 +806,7 @@ class IngestionService:
             current = state.source_revisions[key][-1]
             if current.revision != expected_revision:
                 raise IngestionFailure("STALE_REVISION")
-            if current.state is not SourceState.VALID:
+            if current.state not in {SourceState.VALID, SourceState.SAMPLED}:
                 raise IngestionFailure("TRANSITION_FORBIDDEN")
             current_lease = state.lease_revisions.get(lease_key, [None])[-1]
             try:
@@ -832,5 +877,958 @@ class IngestionService:
             self._evidence_event(state, source=source, revision=disabled, reason_code=disabled.reason_code, correlation_id=correlation_id)
             state.idempotency[(identity.organization_id, idempotency_key)] = (request_digest, disabled)
             return disabled
+
+        return self.store.transact(operation)
+
+
+def _graph_id(label: str, *values: str) -> str:
+    value = canonical_digest({"label": label, "values": list(values)})
+    return f"provenance.{value.removeprefix('sha256:')[:24]}"
+
+
+def _assessment_graph(
+    *,
+    batch: StagedBatch,
+    policy: ReadinessPolicyObservation,
+    observation: MeasurementObservation,
+    findings: tuple[ReadinessFinding, ...],
+    assessment: DataReadinessAssessment,
+    created_at: str,
+) -> ProvenanceGraph:
+    lease_binding_digest = canonical_digest(
+        {
+            "organizationId": batch.organization_id,
+            "sourceId": batch.source_id,
+            "partition": batch.partition,
+            "fencingToken": batch.fencing_token,
+        }
+    )
+    nodes = [
+        ProvenanceNode("assessment.result", "readiness.assessment", assessment.assessment_digest),
+        ProvenanceNode("batch.staged", "data.staged-batch", batch.batch_digest),
+        ProvenanceNode("checkpoint.candidate", "data.checkpoint-candidate", batch.checkpoint_candidate_digest),
+        ProvenanceNode("domain.version", "domain.version", batch.active_domain_version_digest),
+        ProvenanceNode("lease.binding", "data.lease-binding", lease_binding_digest),
+        ProvenanceNode("material.object", "data.material", batch.material_digest),
+        ProvenanceNode("measurement.observation", "readiness.measurement", observation.observation_digest),
+        ProvenanceNode("policy.readiness", "readiness.policy", policy.policy_digest),
+        ProvenanceNode("records.set", "data.record-set", batch.record_set_digest),
+        ProvenanceNode("semantic.mapping", "domain.semantic-mapping", batch.semantic_mapping_digest),
+        ProvenanceNode("source.version", "data.source-version", batch.source_version_digest),
+    ]
+    for finding in findings:
+        nodes.append(ProvenanceNode(finding.finding_id, "readiness.finding", finding.finding_digest))
+    edges = [
+        ProvenanceEdge("source.version", "batch.staged", "source.produces"),
+        ProvenanceEdge("material.object", "batch.staged", "material.binds"),
+        ProvenanceEdge("records.set", "batch.staged", "records.bind"),
+        ProvenanceEdge("checkpoint.candidate", "batch.staged", "checkpoint.binds"),
+        ProvenanceEdge("lease.binding", "batch.staged", "lease.fences"),
+        ProvenanceEdge("domain.version", "batch.staged", "domain.binds"),
+        ProvenanceEdge("semantic.mapping", "batch.staged", "mapping.binds"),
+        ProvenanceEdge("batch.staged", "measurement.observation", "batch.measured-by"),
+        ProvenanceEdge("policy.readiness", "assessment.result", "policy.governs"),
+        ProvenanceEdge("measurement.observation", "assessment.result", "measurement.supports"),
+    ]
+    for finding in findings:
+        edges.append(ProvenanceEdge("measurement.observation", finding.finding_id, "measurement.yields"))
+        edges.append(ProvenanceEdge(finding.finding_id, "assessment.result", "finding.supports"))
+    graph_id = _graph_id(
+        "assessment", assessment.assessment_digest, policy.policy_digest, observation.observation_digest
+    )
+    return build_graph(
+        organization_id=batch.organization_id,
+        graph_id=graph_id,
+        purpose="ASSESSMENT",
+        nodes=tuple(nodes),
+        edges=tuple(edges),
+        created_at=created_at,
+    )
+
+
+class ReadinessService:
+    """Tenant-isolated readiness, retry, evidence, and activation service."""
+
+    def __init__(
+        self,
+        *,
+        store: InMemoryIngestionStore,
+        now: Callable[[], str],
+        new_id: Callable[[], str] = lambda: str(uuid4()),
+    ) -> None:
+        self.store = store
+        self.now = now
+        self.new_id = new_id
+
+    @staticmethod
+    def _command_fields(idempotency_key: str, correlation_id: str) -> None:
+        IngestionService._command_fields(idempotency_key, correlation_id)
+
+    @staticmethod
+    def _idempotent(state: StoreState, organization_id: str, key: str, request_digest: str) -> object | None:
+        return IngestionService._idempotent(state, organization_id, key, request_digest)
+
+    def _authorize(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        action: str,
+        resource_digest: str,
+    ) -> None:
+        if (
+            not permit.allowed
+            or permit.organization_id != identity.organization_id
+            or permit.subject_id != identity.subject_id
+            or permit.action != action
+            or permit.resource_digest != resource_digest
+            or _parse_time(permit.expires_at) <= _parse_time(self.now())
+        ):
+            raise IngestionFailure("POLICY_DENIED")
+
+    def authorize_scope(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        action: str,
+        resource_digest: str,
+    ) -> None:
+        self._authorize(identity, permit, action, resource_digest)
+
+    @staticmethod
+    def _batch_dependencies(
+        batch: StagedBatch,
+        policy: ReadinessPolicyObservation,
+        observation: MeasurementObservation,
+        *,
+        operational: bool,
+        now: str,
+    ) -> None:
+        if not batch.partition:
+            raise IngestionFailure("BATCH_PARTITION_UNBOUND")
+        if policy.organization_id != batch.organization_id or observation.organization_id != batch.organization_id:
+            raise IngestionFailure("TENANT_MISMATCH")
+        if operational and (policy.illustrative or policy.tenant_approval_digest is None):
+            raise IngestionFailure("POLICY_NOT_TENANT_APPROVED")
+        timestamp = _parse_time(now)
+        if not (_parse_time(policy.effective_at) <= timestamp < _parse_time(policy.expires_at)):
+            raise IngestionFailure("POLICY_STALE")
+        if not (_parse_time(observation.collected_at) <= timestamp < _parse_time(observation.valid_until)):
+            raise IngestionFailure("MEASUREMENT_STALE")
+        if (
+            observation.source_id,
+            observation.source_version_digest,
+            observation.batch_id,
+            observation.batch_digest,
+            observation.material_digest,
+            observation.record_set_digest,
+            observation.checkpoint_candidate_digest,
+            observation.partition,
+            observation.observed_record_count,
+        ) != (
+            batch.source_id,
+            batch.source_version_digest,
+            batch.batch_id,
+            batch.batch_digest,
+            batch.material_digest,
+            batch.record_set_digest,
+            batch.checkpoint_candidate_digest,
+            batch.partition,
+            batch.record_count,
+        ):
+            raise IngestionFailure("MEASUREMENT_SCOPE_MISMATCH")
+
+    def request_assessment(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        batch_id: str,
+        *,
+        policy: ReadinessPolicyObservation,
+        observation: MeasurementObservation,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> ReadinessWorkRevision:
+        self._command_fields(idempotency_key, correlation_id)
+        scope = batch_scope_digest(identity.organization_id, batch_id)
+        self._authorize(identity, permit, "knowledge.ingestion.staged-batch.assess", scope)
+        batch_key = (identity.organization_id, batch_id)
+        snapshot = self.store.snapshot()
+        batch = snapshot.batches.get(batch_key)
+        if batch is None:
+            raise IngestionFailure("STAGED_BATCH_NOT_FOUND")
+        if batch_key in snapshot.batch_commits:
+            raise IngestionFailure("BATCH_ALREADY_COMMITTED")
+        readiness_history = snapshot.source_readiness_revisions.get(
+            (identity.organization_id, batch.source_id), []
+        )
+        if readiness_history and readiness_history[-1].state is SourceReadinessState.REVOKED:
+            raise IngestionFailure("SOURCE_REVOKED")
+        self._batch_dependencies(batch, policy, observation, operational=True, now=self.now())
+        request_digest = canonical_digest(
+            {
+                "batchDigest": batch.batch_digest,
+                "policyDigest": policy.policy_digest,
+                "observationDigest": observation.observation_digest,
+            }
+        )
+
+        def operation(state: StoreState) -> ReadinessWorkRevision:
+            replay = self._idempotent(state, identity.organization_id, idempotency_key, request_digest)
+            if replay is not None:
+                return replay  # type: ignore[return-value]
+            current_batch = state.batches.get(batch_key)
+            if current_batch != batch or batch_key in state.batch_commits:
+                raise IngestionFailure("BATCH_STATE_CHANGED")
+            current_readiness = state.source_readiness_revisions.get(
+                (identity.organization_id, batch.source_id), []
+            )
+            if current_readiness and current_readiness[-1].state is SourceReadinessState.REVOKED:
+                raise IngestionFailure("SOURCE_REVOKED")
+            policy_key = (identity.organization_id, policy.policy_id, policy.version)
+            existing_policy = state.readiness_policies.get(policy_key)
+            if existing_policy is not None and existing_policy != policy:
+                raise IngestionFailure("POLICY_VERSION_CONFLICT")
+            observation_key = (identity.organization_id, batch_id, observation.observation_digest)
+            existing_observation = state.measurement_observations.get(observation_key)
+            if existing_observation is not None and existing_observation != observation:
+                raise IngestionFailure("MEASUREMENT_DIGEST_CONFLICT")
+            work = new_work(
+                organization_id=identity.organization_id,
+                work_id=self.new_id(),
+                source_id=batch.source_id,
+                batch_id=batch.batch_id,
+                batch_digest=batch.batch_digest,
+                policy_digest=policy.policy_digest,
+                observation_digest=observation.observation_digest,
+                now=self.now(),
+                correlation_id=correlation_id,
+            )
+            state.readiness_policies[policy_key] = policy
+            state.measurement_observations[observation_key] = observation
+            state.readiness_work_revisions[(identity.organization_id, work.work_id)] = [work]
+            state.idempotency[(identity.organization_id, idempotency_key)] = (request_digest, work)
+            return work
+
+        return self.store.transact(operation)
+
+    def claim_assessment_work(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        work_id: str,
+        *,
+        expected_revision: int,
+        ttl_seconds: int,
+        correlation_id: str,
+    ) -> ReadinessWorkRevision:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.readiness.process",
+            work_scope_digest(identity.organization_id, work_id),
+        )
+        key = (identity.organization_id, work_id)
+
+        def operation(state: StoreState) -> ReadinessWorkRevision:
+            history = state.readiness_work_revisions.get(key)
+            if not history:
+                raise IngestionFailure("WORK_NOT_FOUND")
+            current = history[-1]
+            if current.revision != expected_revision:
+                raise IngestionFailure("WORK_STALE_REVISION")
+            try:
+                claimed = claim_work(
+                    current,
+                    worker_id=identity.subject_id,
+                    ttl_seconds=ttl_seconds,
+                    now=self.now(),
+                    correlation_id=correlation_id,
+                )
+            except RetryFailure as exc:
+                raise IngestionFailure(exc.reason_code) from exc
+            history.append(claimed)
+            return claimed
+
+        return self.store.transact(operation)
+
+    @staticmethod
+    def _find_policy(state: StoreState, organization_id: str, policy_digest: str) -> ReadinessPolicyObservation:
+        matches = [
+            item
+            for (tenant, _, _), item in state.readiness_policies.items()
+            if tenant == organization_id and item.policy_digest == policy_digest
+        ]
+        if len(matches) != 1:
+            raise IngestionFailure("POLICY_DEPENDENCY_UNAVAILABLE")
+        return matches[0]
+
+    @staticmethod
+    def _find_observation(
+        state: StoreState,
+        organization_id: str,
+        batch_id: str,
+        observation_digest: str,
+    ) -> MeasurementObservation:
+        item = state.measurement_observations.get((organization_id, batch_id, observation_digest))
+        if item is None:
+            raise IngestionFailure("MEASUREMENT_DEPENDENCY_UNAVAILABLE")
+        return item
+
+    def complete_assessment_work(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        supplied_claim: ReadinessWorkRevision,
+        *,
+        correlation_id: str,
+    ) -> DataReadinessAssessment:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.readiness.process",
+            work_scope_digest(identity.organization_id, supplied_claim.work_id),
+        )
+        snapshot = self.store.snapshot()
+        work_key = (identity.organization_id, supplied_claim.work_id)
+        history = snapshot.readiness_work_revisions.get(work_key)
+        if not history or history[-1] != supplied_claim:
+            raise IngestionFailure("WORK_FENCE_MISMATCH")
+        batch = snapshot.batches.get((identity.organization_id, supplied_claim.batch_id))
+        if batch is None:
+            raise IngestionFailure("STAGED_BATCH_NOT_FOUND")
+        readiness_history = snapshot.source_readiness_revisions.get(
+            (identity.organization_id, batch.source_id), []
+        )
+        if readiness_history and readiness_history[-1].state is SourceReadinessState.REVOKED:
+            raise IngestionFailure("SOURCE_REVOKED")
+        policy = self._find_policy(snapshot, identity.organization_id, supplied_claim.policy_digest)
+        observation = self._find_observation(
+            snapshot,
+            identity.organization_id,
+            supplied_claim.batch_id,
+            supplied_claim.observation_digest,
+        )
+        evaluated_at = self.now()
+        self._batch_dependencies(batch, policy, observation, operational=True, now=evaluated_at)
+        try:
+            findings, assessment = evaluate_readiness(
+                policy=policy,
+                observation=observation,
+                batch=batch,
+                evaluated_at=evaluated_at,
+            )
+        except ReadinessFailure as exc:
+            raise IngestionFailure(exc.reason_code) from exc
+        graph = _assessment_graph(
+            batch=batch,
+            policy=policy,
+            observation=observation,
+            findings=findings,
+            assessment=assessment,
+            created_at=evaluated_at,
+        )
+        evidence = build_evidence(assessment, graph, batch)
+
+        def operation(state: StoreState) -> DataReadinessAssessment:
+            current_history = state.readiness_work_revisions.get(work_key)
+            if not current_history or current_history[-1] != supplied_claim:
+                raise IngestionFailure("WORK_FENCE_MISMATCH")
+            if state.batches.get((identity.organization_id, batch.batch_id)) != batch:
+                raise IngestionFailure("BATCH_STATE_CHANGED")
+            current_readiness = state.source_readiness_revisions.get(
+                (identity.organization_id, batch.source_id), []
+            )
+            if current_readiness and current_readiness[-1].state is SourceReadinessState.REVOKED:
+                raise IngestionFailure("SOURCE_REVOKED")
+            try:
+                finished = finish_work(
+                    supplied_claim,
+                    worker_id=identity.subject_id,
+                    now=evaluated_at,
+                    correlation_id=correlation_id,
+                )
+            except RetryFailure as exc:
+                raise IngestionFailure(exc.reason_code) from exc
+            assessment_key = (identity.organization_id, assessment.assessment_id)
+            if assessment_key in state.readiness_assessments:
+                raise IngestionFailure("ASSESSMENT_DUPLICATE")
+            graph_key = (identity.organization_id, graph.graph_id)
+            evidence_key = (identity.organization_id, evidence.evidence_id)
+            if graph_key in state.provenance_graphs or evidence_key in state.readiness_evidence:
+                raise IngestionFailure("READINESS_EVIDENCE_DUPLICATE")
+            source_key = (identity.organization_id, batch.source_id)
+            readiness_history = state.source_readiness_revisions.setdefault(source_key, [])
+            source_state = (
+                SourceReadinessState.READY_FOR_APPROVAL
+                if assessment.decision is ReadinessDecision.PASS
+                else SourceReadinessState.DEGRADED
+            )
+            reason_code = f"READINESS_{assessment.decision.value}"
+            revision = SourceReadinessRevision(
+                identity.organization_id,
+                batch.source_id,
+                len(readiness_history) + 1,
+                source_state,
+                batch.batch_id,
+                assessment.assessment_id,
+                assessment.assessment_digest,
+                evidence.evidence_id,
+                evidence.record_digest,
+                policy.policy_digest,
+                reason_code,
+                evaluated_at,
+                assessment.valid_until,
+                correlation_id,
+            )
+            event_type = f"data.readiness.{assessment.decision.value.lower()}.v1"
+            event = build_event(
+                event_id=self.new_id(),
+                organization_id=identity.organization_id,
+                source_id=batch.source_id,
+                aggregate_version=revision.revision,
+                event_type=event_type,
+                batch_digest=batch.batch_digest,
+                assessment_digest=assessment.assessment_digest,
+                evidence_record_digest=evidence.record_digest,
+                reason_code=reason_code,
+                correlation_id=correlation_id,
+                occurred_at=evaluated_at,
+            )
+            state.readiness_findings[assessment_key] = findings
+            state.readiness_assessments[assessment_key] = assessment
+            state.assessment_graph_ids[assessment_key] = graph.graph_id
+            state.provenance_graphs[graph_key] = graph
+            state.readiness_evidence[evidence_key] = evidence
+            readiness_history.append(revision)
+            state.readiness_events.append(event)
+            current_history.append(finished)
+            return assessment
+
+        return self.store.transact(operation)
+
+    def record_assessment_failure(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        supplied_claim: ReadinessWorkRevision,
+        *,
+        reason_code: str,
+        correlation_id: str,
+        recover_expired: bool = False,
+    ) -> tuple[ReadinessWorkRevision, DeadLetterRecord | None]:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.readiness.process",
+            work_scope_digest(identity.organization_id, supplied_claim.work_id),
+        )
+        key = (identity.organization_id, supplied_claim.work_id)
+
+        def operation(state: StoreState) -> tuple[ReadinessWorkRevision, DeadLetterRecord | None]:
+            history = state.readiness_work_revisions.get(key)
+            if not history or history[-1] != supplied_claim:
+                raise IngestionFailure("WORK_FENCE_MISMATCH")
+            try:
+                failed = fail_work(
+                    supplied_claim,
+                    worker_id=identity.subject_id,
+                    reason_code=reason_code,
+                    now=self.now(),
+                    correlation_id=correlation_id,
+                    allow_expired_claim=recover_expired,
+                )
+            except RetryFailure as exc:
+                raise IngestionFailure(exc.reason_code) from exc
+            history.append(failed)
+            dead_letter = None
+            if failed.state is WorkState.DEAD_LETTERED:
+                dead_letter = build_dead_letter(dead_letter_id=self.new_id(), work=failed)
+                state.dead_letters[(identity.organization_id, dead_letter.dead_letter_id)] = dead_letter
+                readiness_history = state.source_readiness_revisions.setdefault(
+                    (identity.organization_id, failed.source_id), []
+                )
+                revision = SourceReadinessRevision(
+                    identity.organization_id,
+                    failed.source_id,
+                    len(readiness_history) + 1,
+                    SourceReadinessState.DEGRADED,
+                    failed.batch_id,
+                    None,
+                    None,
+                    None,
+                    None,
+                    failed.policy_digest,
+                    "READINESS_DEAD_LETTERED",
+                    failed.occurred_at,
+                    None,
+                    correlation_id,
+                )
+                readiness_history.append(revision)
+                state.readiness_events.append(
+                    build_event(
+                        event_id=self.new_id(),
+                        organization_id=identity.organization_id,
+                        source_id=failed.source_id,
+                        aggregate_version=revision.revision,
+                        event_type="data.readiness.dead-lettered.v1",
+                        batch_digest=failed.batch_digest,
+                        assessment_digest=None,
+                        evidence_record_digest=None,
+                        reason_code=failed.reason_code,
+                        correlation_id=correlation_id,
+                        occurred_at=failed.occurred_at,
+                    )
+                )
+            return failed, dead_letter
+
+        return self.store.transact(operation)
+
+    def get_assessment(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        assessment_id: str,
+    ) -> DataReadinessAssessment:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.readiness.read",
+            assessment_scope_digest(identity.organization_id, assessment_id),
+        )
+        assessment = self.store.read(
+            lambda state: state.readiness_assessments.get((identity.organization_id, assessment_id))
+        )
+        if assessment is None:
+            raise IngestionFailure("ASSESSMENT_NOT_FOUND")
+        return assessment
+
+    def get_source_readiness(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        source_id: str,
+    ) -> tuple[str, SourceReadinessRevision | None]:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.readiness.read",
+            readiness_scope_digest(identity.organization_id, source_id),
+        )
+        current = self.store.read(
+            lambda state: state.source_readiness_revisions.get((identity.organization_id, source_id), [None])[-1]
+        )
+        if current is None:
+            source = self.store.read(lambda state: state.sources.get((identity.organization_id, source_id)))
+            if source is None:
+                raise IngestionFailure("SOURCE_NOT_FOUND")
+            return "UNASSESSED", None
+        if current.state is SourceReadinessState.REVOKED:
+            return current.state.value, current
+        if current.valid_until is None or _parse_time(current.valid_until) <= _parse_time(self.now()):
+            return SourceReadinessState.DEGRADED.value, current
+        return current.state.value, current
+
+    def commit_batch(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        batch_id: str,
+        *,
+        expected_readiness_revision: int,
+        approval: OwnerApprovalAttestation,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> BatchCommit:
+        self._command_fields(idempotency_key, correlation_id)
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.batch.commit",
+            batch_scope_digest(identity.organization_id, batch_id),
+        )
+        request_digest = canonical_digest(
+            {
+                "batchId": batch_id,
+                "expectedReadinessRevision": expected_readiness_revision,
+                "approvalDigest": approval.approval_digest,
+            }
+        )
+
+        def operation(state: StoreState) -> BatchCommit:
+            replay = self._idempotent(state, identity.organization_id, idempotency_key, request_digest)
+            if replay is not None:
+                return replay  # type: ignore[return-value]
+            batch_key = (identity.organization_id, batch_id)
+            batch = state.batches.get(batch_key)
+            if batch is None:
+                raise IngestionFailure("STAGED_BATCH_NOT_FOUND")
+            if not batch.partition:
+                raise IngestionFailure("BATCH_PARTITION_UNBOUND")
+            if batch_key in state.batch_commits:
+                raise IngestionFailure("BATCH_ALREADY_COMMITTED")
+            source = state.sources.get((identity.organization_id, batch.source_id))
+            if source is None:
+                raise IngestionFailure("SOURCE_NOT_FOUND")
+            readiness_history = state.source_readiness_revisions.get(
+                (identity.organization_id, batch.source_id)
+            )
+            if not readiness_history:
+                raise IngestionFailure("READINESS_NOT_FOUND")
+            current = readiness_history[-1]
+            if current.revision != expected_readiness_revision:
+                raise IngestionFailure("STALE_REVISION")
+            if current.state is not SourceReadinessState.READY_FOR_APPROVAL:
+                raise IngestionFailure("SOURCE_NOT_READY_FOR_APPROVAL")
+            if current.batch_id != batch_id or current.assessment_id is None or current.evidence_id is None:
+                raise IngestionFailure("READINESS_SCOPE_MISMATCH")
+            assessment = state.readiness_assessments.get(
+                (identity.organization_id, current.assessment_id)
+            )
+            evidence = state.readiness_evidence.get((identity.organization_id, current.evidence_id))
+            graph_id = state.assessment_graph_ids.get((identity.organization_id, current.assessment_id))
+            graph = state.provenance_graphs.get((identity.organization_id, graph_id or ""))
+            if assessment is None or evidence is None or graph is None:
+                raise IngestionFailure("READINESS_EVIDENCE_MISSING")
+            now = self.now()
+            if (
+                assessment.decision is not ReadinessDecision.PASS
+                or assessment.overall_status != "READY"
+                or current.assessment_digest != assessment.assessment_digest
+                or current.evidence_record_digest != evidence.record_digest
+                or current.policy_digest != assessment.policy_digest
+                or current.valid_until is None
+                or _parse_time(current.valid_until) <= _parse_time(now)
+                or _parse_time(assessment.valid_until) <= _parse_time(now)
+                or evidence.result is not ReadinessDecision.PASS
+                or _parse_time(evidence.valid_until) <= _parse_time(now)
+                or evidence.subject_digest != batch.batch_digest
+                or evidence.evidence_digest != assessment.assessment_digest
+                or evidence.provenance_digest != graph.graph_digest
+                or graph.organization_id != identity.organization_id
+                or graph.purpose != "ASSESSMENT"
+            ):
+                raise IngestionFailure("READINESS_STALE")
+            if (
+                approval.organization_id,
+                approval.owner_digest,
+                approval.source_id,
+                approval.source_version_digest,
+                approval.batch_id,
+                approval.batch_digest,
+                approval.assessment_digest,
+                approval.evidence_record_digest,
+                approval.policy_digest,
+                approval.provenance_digest,
+            ) != (
+                identity.organization_id,
+                source.owner_digest,
+                batch.source_id,
+                batch.source_version_digest,
+                batch.batch_id,
+                batch.batch_digest,
+                assessment.assessment_digest,
+                evidence.record_digest,
+                assessment.policy_digest,
+                graph.graph_digest,
+            ):
+                raise IngestionFailure("OWNER_APPROVAL_MISMATCH")
+            if not (_parse_time(approval.issued_at) <= _parse_time(now) < _parse_time(approval.expires_at)):
+                raise IngestionFailure("OWNER_APPROVAL_STALE")
+            checkpoint = state.checkpoint_candidates.get(batch_key)
+            if checkpoint is None or (
+                checkpoint.organization_id,
+                checkpoint.source_id,
+                checkpoint.source_version_digest,
+                checkpoint.partition,
+                checkpoint.checkpoint_digest,
+            ) != (
+                batch.organization_id,
+                batch.source_id,
+                batch.source_version_digest,
+                batch.partition,
+                batch.checkpoint_candidate_digest,
+            ):
+                raise IngestionFailure("CHECKPOINT_CANDIDATE_MISMATCH")
+            checkpoint_key = (identity.organization_id, batch.source_id, batch.partition)
+            checkpoint_history = state.checkpoint_revisions.setdefault(checkpoint_key, [])
+            if checkpoint_history:
+                prior = checkpoint_history[-1]
+                if batch.fencing_token <= prior.fencing_token or _parse_time(batch.staged_at) <= _parse_time(prior.batch_staged_at):
+                    raise IngestionFailure("CHECKPOINT_ORDER_INVALID")
+            checkpoint_revision = CheckpointRevision(
+                identity.organization_id,
+                batch.source_id,
+                batch.source_version_digest,
+                batch.partition,
+                len(checkpoint_history) + 1,
+                batch.batch_id,
+                batch.batch_digest,
+                checkpoint.checkpoint_digest,
+                batch.fencing_token,
+                batch.staged_at,
+                now,
+            )
+            checkpoint_revision_digest = canonical_digest(
+                {
+                    "organizationId": checkpoint_revision.organization_id,
+                    "sourceId": checkpoint_revision.source_id,
+                    "sourceVersionDigest": checkpoint_revision.source_version_digest,
+                    "partition": checkpoint_revision.partition,
+                    "revision": checkpoint_revision.revision,
+                    "batchId": checkpoint_revision.batch_id,
+                    "batchDigest": checkpoint_revision.batch_digest,
+                    "checkpointDigest": checkpoint_revision.checkpoint_digest,
+                    "fencingToken": checkpoint_revision.fencing_token,
+                    "batchStagedAt": checkpoint_revision.batch_staged_at,
+                    "activatedAt": checkpoint_revision.activated_at,
+                }
+            )
+            commit_core_digest = canonical_digest(
+                {
+                    "organizationId": identity.organization_id,
+                    "sourceId": batch.source_id,
+                    "batchDigest": batch.batch_digest,
+                    "assessmentDigest": assessment.assessment_digest,
+                    "evidenceRecordDigest": evidence.record_digest,
+                    "approvalDigest": approval.approval_digest,
+                    "checkpointDigest": checkpoint.checkpoint_digest,
+                    "checkpointRevision": checkpoint_revision.revision,
+                    "committedAt": now,
+                }
+            )
+            commit_graph = build_graph(
+                organization_id=identity.organization_id,
+                graph_id=_graph_id("commit", commit_core_digest, graph.graph_digest),
+                purpose="COMMIT",
+                nodes=(
+                    ProvenanceNode("approval.owner", "readiness.owner-approval", approval.approval_digest),
+                    ProvenanceNode("assessment.graph", "readiness.provenance", graph.graph_digest),
+                    ProvenanceNode("batch.committed", "data.committed-batch", commit_core_digest),
+                    ProvenanceNode("batch.staged", "data.staged-batch", batch.batch_digest),
+                    ProvenanceNode(
+                        "checkpoint.activated",
+                        "data.checkpoint-revision",
+                        checkpoint_revision_digest,
+                    ),
+                ),
+                edges=(
+                    ProvenanceEdge("approval.owner", "batch.committed", "approval.authorizes"),
+                    ProvenanceEdge("assessment.graph", "batch.committed", "assessment.authorizes"),
+                    ProvenanceEdge("batch.staged", "batch.committed", "batch.promotes"),
+                    ProvenanceEdge("batch.committed", "checkpoint.activated", "commit.advances"),
+                ),
+                created_at=now,
+            )
+            commit_evidence = build_evidence(assessment, commit_graph, batch)
+            commit_body = {
+                "organizationId": identity.organization_id,
+                "sourceId": batch.source_id,
+                "sourceVersionDigest": batch.source_version_digest,
+                "batchId": batch.batch_id,
+                "batchDigest": batch.batch_digest,
+                "partition": batch.partition,
+                "assessmentDigest": assessment.assessment_digest,
+                "evidenceRecordDigest": commit_evidence.record_digest,
+                "policyDigest": assessment.policy_digest,
+                "provenanceDigest": commit_graph.graph_digest,
+                "approvalDigest": approval.approval_digest,
+                "checkpointDigest": checkpoint.checkpoint_digest,
+                "fencingToken": batch.fencing_token,
+                "committedAt": now,
+            }
+            commit = BatchCommit(
+                identity.organization_id,
+                batch.source_id,
+                batch.source_version_digest,
+                batch.batch_id,
+                batch.batch_digest,
+                batch.partition,
+                assessment.assessment_digest,
+                commit_evidence.record_digest,
+                assessment.policy_digest,
+                commit_graph.graph_digest,
+                approval.approval_digest,
+                checkpoint.checkpoint_digest,
+                batch.fencing_token,
+                now,
+                canonical_digest(commit_body),
+            )
+            active = SourceReadinessRevision(
+                identity.organization_id,
+                batch.source_id,
+                current.revision + 1,
+                SourceReadinessState.ACTIVE,
+                batch.batch_id,
+                assessment.assessment_id,
+                assessment.assessment_digest,
+                commit_evidence.evidence_id,
+                commit_evidence.record_digest,
+                assessment.policy_digest,
+                "SOURCE_ACTIVATED",
+                now,
+                min(assessment.valid_until, approval.expires_at),
+                correlation_id,
+            )
+            graph_key = (identity.organization_id, commit_graph.graph_id)
+            evidence_key = (identity.organization_id, commit_evidence.evidence_id)
+            if graph_key in state.provenance_graphs or evidence_key in state.readiness_evidence:
+                raise IngestionFailure("COMMIT_EVIDENCE_DUPLICATE")
+            state.provenance_graphs[graph_key] = commit_graph
+            state.readiness_evidence[evidence_key] = commit_evidence
+            state.batch_commits[batch_key] = commit
+            checkpoint_history.append(checkpoint_revision)
+            readiness_history.append(active)
+            for event_type in ("data.batch.committed.v1", "data.source.activated.v1"):
+                state.readiness_events.append(
+                    build_event(
+                        event_id=self.new_id(),
+                        organization_id=identity.organization_id,
+                        source_id=batch.source_id,
+                        aggregate_version=active.revision,
+                        event_type=event_type,
+                        batch_digest=batch.batch_digest,
+                        assessment_digest=assessment.assessment_digest,
+                        evidence_record_digest=commit_evidence.record_digest,
+                        reason_code="SOURCE_ACTIVATED",
+                        correlation_id=correlation_id,
+                        occurred_at=now,
+                    )
+                )
+            state.idempotency[(identity.organization_id, idempotency_key)] = (request_digest, commit)
+            return commit
+
+        return self.store.transact(operation)
+
+    def revoke_source(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        source_id: str,
+        *,
+        expected_readiness_revision: int,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> SourceReadinessRevision:
+        self._command_fields(idempotency_key, correlation_id)
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.source.revoke",
+            readiness_scope_digest(identity.organization_id, source_id),
+        )
+        request_digest = canonical_digest(
+            {"sourceId": source_id, "expectedReadinessRevision": expected_readiness_revision, "state": "REVOKED"}
+        )
+
+        def operation(state: StoreState) -> SourceReadinessRevision:
+            replay = self._idempotent(state, identity.organization_id, idempotency_key, request_digest)
+            if replay is not None:
+                return replay  # type: ignore[return-value]
+            if (identity.organization_id, source_id) not in state.sources:
+                raise IngestionFailure("SOURCE_NOT_FOUND")
+            history = state.source_readiness_revisions.get((identity.organization_id, source_id))
+            if not history or history[-1].revision != expected_readiness_revision:
+                raise IngestionFailure("STALE_REVISION")
+            if history[-1].state is SourceReadinessState.REVOKED:
+                raise IngestionFailure("SOURCE_REVOKED")
+            now = self.now()
+            revoked = SourceReadinessRevision(
+                identity.organization_id,
+                source_id,
+                expected_readiness_revision + 1,
+                SourceReadinessState.REVOKED,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                "SOURCE_REVOKED",
+                now,
+                None,
+                correlation_id,
+            )
+            history.append(revoked)
+            state.readiness_events.append(
+                build_event(
+                    event_id=self.new_id(),
+                    organization_id=identity.organization_id,
+                    source_id=source_id,
+                    aggregate_version=revoked.revision,
+                    event_type="data.source.revoked.v1",
+                    batch_digest=None,
+                    assessment_digest=None,
+                    evidence_record_digest=None,
+                    reason_code="SOURCE_REVOKED",
+                    correlation_id=correlation_id,
+                    occurred_at=now,
+                )
+            )
+            state.idempotency[(identity.organization_id, idempotency_key)] = (request_digest, revoked)
+            return revoked
+
+        return self.store.transact(operation)
+
+    def get_dead_letter(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        dead_letter_id: str,
+    ) -> DeadLetterRecord:
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.dead-letter.read",
+            dead_letter_scope_digest(identity.organization_id, dead_letter_id),
+        )
+        record = self.store.read(
+            lambda state: state.dead_letters.get((identity.organization_id, dead_letter_id))
+        )
+        if record is None:
+            raise IngestionFailure("DEAD_LETTER_NOT_FOUND")
+        return record
+
+    def review_dead_letter(
+        self,
+        identity: TenantIdentity,
+        permit: AccessPermit,
+        dead_letter_id: str,
+        *,
+        decision: str,
+        reason_code: str,
+        idempotency_key: str,
+        correlation_id: str,
+    ) -> DeadLetterReview:
+        self._command_fields(idempotency_key, correlation_id)
+        if decision != "ACKNOWLEDGED":
+            raise IngestionFailure("REVIEW_DECISION_INVALID")
+        self._authorize(
+            identity,
+            permit,
+            "knowledge.ingestion.dead-letter.review",
+            dead_letter_scope_digest(identity.organization_id, dead_letter_id),
+        )
+        request_digest = canonical_digest(
+            {"deadLetterId": dead_letter_id, "decision": decision, "reasonCode": reason_code}
+        )
+
+        def operation(state: StoreState) -> DeadLetterReview:
+            replay = self._idempotent(state, identity.organization_id, idempotency_key, request_digest)
+            if replay is not None:
+                return replay  # type: ignore[return-value]
+            if (identity.organization_id, dead_letter_id) not in state.dead_letters:
+                raise IngestionFailure("DEAD_LETTER_NOT_FOUND")
+            review = build_review(
+                organization_id=identity.organization_id,
+                review_id=self.new_id(),
+                dead_letter_id=dead_letter_id,
+                reason_code=reason_code,
+                reviewer_subject_id=identity.subject_id,
+                reviewed_at=self.now(),
+                correlation_id=correlation_id,
+            )
+            state.dead_letter_reviews.setdefault((identity.organization_id, dead_letter_id), []).append(review)
+            state.idempotency[(identity.organization_id, idempotency_key)] = (request_digest, review)
+            return review
 
         return self.store.transact(operation)
