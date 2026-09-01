@@ -1,0 +1,6 @@
+[
+  {"applianceModel":"PX-10","lifecycleStatus":"ACTIVE","region":"emea","warrantyMonths":24},
+  {"applianceModel":"PX-11","lifecycleStatus":"ACTIVE","region":"emea","warrantyMonths":36},
+  {"applianceModel":"PX-12","lifecycleStatus":"PILOT","region":"apac","warrantyMonths":12},
+  {"applianceModel":"PX-13","lifecycleStatus":"RETIRED","region":"amer","warrantyMonths":18}
+]

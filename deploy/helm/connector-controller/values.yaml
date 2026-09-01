@@ -8,6 +8,16 @@ policy:
   existingConfigMap: ""
 ownedStore:
   existingSecret: ""
+endpointGrants:
+  existingConfigMap: ""
+credentialReferences:
+  existingSecret: ""
+staging:
+  existingConfigMap: ""
+sourceNetworkPolicy:
+  existingConfigMap: ""
+domainBindings:
+  existingConfigMap: ""
 telemetry:
   enabled: false
   existingConfigMap: ""

@@ -1,0 +1,4 @@
+{"line":"A1","passed":true,"sampleCount":40,"station":"seal-check"}
+{"line":"A2","passed":true,"sampleCount":38,"station":"noise-check"}
+{"line":"B1","passed":false,"sampleCount":42,"station":"leak-check"}
+{"line":"B2","passed":true,"sampleCount":41,"station":"power-check"}
