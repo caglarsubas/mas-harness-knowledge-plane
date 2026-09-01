@@ -122,10 +122,18 @@ def build_staged_batch(
         "sourceId": source.source_id,
         "sourceVersionDigest": source.resource_digest,
         "connectorKind": source.connector_kind.value,
+        "partition": lease.partition,
         "opaqueCheckpoint": last_checkpoint,
         "materialDigest": material_digest,
     })
-    checkpoint = CheckpointCandidate(source.organization_id, source.source_id, source.resource_digest, checkpoint_digest, staged_at)
+    checkpoint = CheckpointCandidate(
+        source.organization_id,
+        source.source_id,
+        source.resource_digest,
+        lease.partition,
+        checkpoint_digest,
+        staged_at,
+    )
 
     staged_records = tuple(
         StagedRecordDigest(
@@ -202,6 +210,7 @@ def build_staged_batch(
         "checkpointCandidateDigest": checkpoint_digest,
         "mediaType": pages[0].media_type,
         "connectorKind": source.connector_kind.value,
+        "partition": lease.partition,
         "state": BatchState.STAGED.value,
         "recordCount": len(decoded),
         "byteCount": byte_count,
@@ -221,6 +230,7 @@ def build_staged_batch(
         checkpoint_digest,
         pages[0].media_type,
         source.connector_kind,
+        lease.partition,
         BatchState.STAGED,
         len(decoded),
         byte_count,

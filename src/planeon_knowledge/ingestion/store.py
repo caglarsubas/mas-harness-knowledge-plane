@@ -17,6 +17,18 @@ from .contracts import (
     StagedBatch,
     StagedRecordDigest,
 )
+from .evidence import ReadinessEvidenceRecord, ReadinessEvent
+from .provenance import ProvenanceGraph
+from .readiness import (
+    BatchCommit,
+    CheckpointRevision,
+    DataReadinessAssessment,
+    MeasurementObservation,
+    ReadinessFinding,
+    ReadinessPolicyObservation,
+    SourceReadinessRevision,
+)
+from .retries import DeadLetterRecord, DeadLetterReview, ReadinessWorkRevision
 
 SourceKey = tuple[str, str]
 LeaseKey = tuple[str, str, str]
@@ -39,6 +51,20 @@ class StoreState:
     evidence: list[IngestionEvidence] = field(default_factory=list)
     events: list[IngestionEvent] = field(default_factory=list)
     idempotency: dict[tuple[str, str], tuple[str, object]] = field(default_factory=dict)
+    readiness_policies: dict[tuple[str, str, str], ReadinessPolicyObservation] = field(default_factory=dict)
+    measurement_observations: dict[tuple[str, str, str], MeasurementObservation] = field(default_factory=dict)
+    readiness_work_revisions: dict[tuple[str, str], list[ReadinessWorkRevision]] = field(default_factory=dict)
+    readiness_findings: dict[tuple[str, str], tuple[ReadinessFinding, ...]] = field(default_factory=dict)
+    readiness_assessments: dict[tuple[str, str], DataReadinessAssessment] = field(default_factory=dict)
+    assessment_graph_ids: dict[tuple[str, str], str] = field(default_factory=dict)
+    provenance_graphs: dict[tuple[str, str], ProvenanceGraph] = field(default_factory=dict)
+    readiness_evidence: dict[tuple[str, str], ReadinessEvidenceRecord] = field(default_factory=dict)
+    source_readiness_revisions: dict[SourceKey, list[SourceReadinessRevision]] = field(default_factory=dict)
+    batch_commits: dict[BatchKey, BatchCommit] = field(default_factory=dict)
+    checkpoint_revisions: dict[tuple[str, str, str], list[CheckpointRevision]] = field(default_factory=dict)
+    dead_letters: dict[tuple[str, str], DeadLetterRecord] = field(default_factory=dict)
+    dead_letter_reviews: dict[tuple[str, str], list[DeadLetterReview]] = field(default_factory=dict)
+    readiness_events: list[ReadinessEvent] = field(default_factory=list)
 
 
 class InMemoryIngestionStore:

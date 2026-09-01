@@ -7,8 +7,9 @@ from planeon_knowledge.ingestion.asgi import (
     IdentityProvider,
     IngestionAsgiApplication,
     PermitProvider,
+    ReadinessDependencyProvider,
 )
-from planeon_knowledge.ingestion.service import IngestionService
+from planeon_knowledge.ingestion.service import IngestionService, ReadinessService
 
 
 def create_application(
@@ -16,12 +17,16 @@ def create_application(
     identity_provider: IdentityProvider,
     permit_provider: PermitProvider,
     dependency_provider: DependencyProvider,
+    readiness_service: ReadinessService | None = None,
+    readiness_dependency_provider: ReadinessDependencyProvider | None = None,
 ) -> IngestionAsgiApplication:
     return IngestionAsgiApplication(
         service,
         identity_provider,
         permit_provider,
         dependency_provider,
+        readiness_service,
+        readiness_dependency_provider,
     )
 
 app = create_health_app(SERVICE_DESCRIPTORS["connector-controller"], closed_failure_probes())

@@ -1,0 +1,11 @@
+{
+  "packetId": "KN-DATA-002",
+  "schemaVersion": "harness.planeon.ai/make-target-descriptor/v1alpha1",
+  "targets": [
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "ci/handlers/prefetch.py"]], "name": "prefetch"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "tests/readiness/test_readiness_parity.py"]], "name": "readiness-parity"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "tests/readiness/test_contract_readiness.py"]], "name": "readiness-contract"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "tests/readiness/test_failure_matrix.py"]], "name": "failure-matrix"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "tests/readiness/test_security_readiness.py"]], "name": "security"}
+  ]
+}

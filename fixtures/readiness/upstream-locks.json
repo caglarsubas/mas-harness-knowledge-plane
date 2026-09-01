@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "planeon.knowledge.readiness-locks/v1",
+  "knowledgePlane": {"commit":"dfa67f06b307e7b47a790cfdb0bc5e63fb13eec9"},
+  "contracts": {
+    "commit":"2146278a95344cd2a8e22596b2f315b46edffc88",
+    "releaseManifestSha256":"c5dd4c39d1c69d07f8d8de3d1a09584bb906172fee2d5ac20ad25ff344b0db79",
+    "dataReadinessAssessmentSha256":"ffe003a1a7ec0773f49d8f394ac3dd6281114bd4335ff05c87d223412faf92a5",
+    "evidenceRecordSha256":"a80935c2dc5ac4624d972edc3876d301059c74e507ca2be28ea353b1070bdd8c"
+  },
+  "industryPack": {
+    "commit":"a4d3df9b169e95c285e22a2fdb2b4c9d711230e2",
+    "passSha256":"9f91f09cdd33d37d94cf4d92f340fa9445bbd0bc376a4abc5e13ddccbdad329f",
+    "warnFreshnessSha256":"0d57ce6f10cd4040d08861ea9293ee98d25c4e740daed868ad579019b7b24fff",
+    "missingSha256":"a1fa4538cddd12112693bcad9fce3de2c7714f338ab8cbd79489aa69cdecea4d",
+    "staleSha256":"596d2cddc2fdad71a773acdd77f24743e66289e05ed6aa93067d8eb38a7358ff",
+    "duplicateSha256":"384fe15132b77dbb38c70fefd9c7c777fe5554d6435c5918baef2a8bd8773ecc",
+    "unclassifiedSha256":"6d7d50052b5db98b0f4cd47c24490d5129718fe6152c870e79cac0578e23b32d",
+    "unprovenancedSha256":"0524c87aa1da35e4fb9ecc2881bff4a4b6d8822930d201275ad6b58879c01711"
+  },
+  "trustPlane": {
+    "commit":"73802adbfa1adf97f20d03026e0b2232691d5392",
+    "clientSha256":"128c6b3fafd03aabcec139bf43be73df8cad0a781d0075b88d3d218a377b5175"
+  }
+}
