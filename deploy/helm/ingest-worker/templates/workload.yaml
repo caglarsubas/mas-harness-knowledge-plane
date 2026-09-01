@@ -1,0 +1,48 @@
+{{- if .Values.enabled }}
+{{- $repository := required "image.repository is required" .Values.image.repository }}
+{{- $digest := required "image.digest is required" .Values.image.digest }}
+{{- $identity := required "identity.existingConfigMap is required" .Values.identity.existingConfigMap }}
+{{- $policy := required "policy.existingConfigMap is required" .Values.policy.existingConfigMap }}
+{{- $store := required "ownedStore.existingSecret is required" .Values.ownedStore.existingSecret }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ default "planeon-ingest-worker" .Values.serviceAccount.name }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planeon-ingest-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: planeon-ingest-worker}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: planeon-ingest-worker}
+    spec:
+      serviceAccountName: {{ default "planeon-ingest-worker" .Values.serviceAccount.name }}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: service
+          image: "{{ $repository }}@{{ $digest }}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          envFrom:
+            - configMapRef: {name: "{{ $identity }}"}
+            - configMapRef: {name: "{{ $policy }}"}
+            - secretRef: {name: "{{ $store }}"}
+          ports: [{name: health, containerPort: 8080, protocol: TCP}]
+          livenessProbe: {httpGet: {path: /health/live, port: health}}
+          readinessProbe: {httpGet: {path: /health/ready, port: health}}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {sizeLimit: 16Mi}}]
+{{- end }}

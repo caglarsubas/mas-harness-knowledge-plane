@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    {"checkedAt": "2030-01-01T00:00:00Z", "name": "identity-admission", "reasonCode": "READY", "state": "READY"},
+    {"checkedAt": "2030-01-01T00:00:00Z", "name": "policy", "reasonCode": "READY", "state": "READY"},
+    {"checkedAt": "2030-01-01T00:00:00Z", "name": "contract-mock", "reasonCode": "READY", "state": "READY"},
+    {"checkedAt": "2030-01-01T00:00:00Z", "name": "owned-store", "reasonCode": "READY", "state": "READY"},
+    {"checkedAt": "2030-01-01T00:00:00Z", "name": "telemetry", "reasonCode": "DISABLED", "state": "DEGRADED"}
+  ],
+  "schemaVersion": "planeon.knowledge.health/v1"
+}

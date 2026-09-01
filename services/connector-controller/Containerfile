@@ -1,0 +1,9 @@
+# BASE_IMAGE is mandatory and must be an immutable repository@sha256 digest.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+WORKDIR /app
+COPY --chown=65532:65532 src/ /app/src/
+COPY --chown=65532:65532 services/connector-controller/app.py /app/service/app.py
+ENV PYTHONPATH=/app/src PYTHONDONTWRITEBYTECODE=1
+USER 65532:65532
+ENTRYPOINT ["python3","/app/service/app.py"]

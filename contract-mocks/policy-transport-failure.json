@@ -1,0 +1,5 @@
+{
+  "reasonCode": "POLICY_TRANSPORT_UNAVAILABLE",
+  "schemaVersion": "planeon.knowledge.mock-failure/v1",
+  "state": "NOT_READY"
+}

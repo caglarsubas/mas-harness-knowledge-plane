@@ -1,0 +1,19 @@
+enabled: false
+image:
+  repository: ""
+  digest: ""
+identity:
+  existingConfigMap: ""
+policy:
+  existingConfigMap: ""
+ownedStore:
+  existingSecret: ""
+telemetry:
+  enabled: false
+  existingConfigMap: ""
+serviceAccount:
+  create: true
+  name: ""
+resources:
+  requests: {cpu: 25m, memory: 64Mi}
+  limits: {cpu: 250m, memory: 256Mi}
