@@ -1,0 +1,12 @@
+{{- if .Values.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planeon-connector-controller-deny-all
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: planeon-connector-controller}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+{{- end }}

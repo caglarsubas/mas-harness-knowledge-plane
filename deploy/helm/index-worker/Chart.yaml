@@ -1,0 +1,6 @@
+apiVersion: v2
+name: planeon-index-worker
+description: Inert KN-001 source chart for the health-only index worker
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

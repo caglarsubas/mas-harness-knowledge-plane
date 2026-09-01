@@ -1,0 +1,6 @@
+schemaVersion: harness.planeon.ai/porting-ledger/v1alpha1
+status: NO_AUTHORIZATION
+authorizationId: null
+mappings: []
+copiedFiles: []
+appliedPorts: []

@@ -1,0 +1,10 @@
+{
+  "packetId": "KN-001",
+  "schemaVersion": "harness.planeon.ai/make-target-descriptor/v1alpha1",
+  "targets": [
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "ci/handlers/help.py"]], "name": "help"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "ci/handlers/prefetch.py"]], "name": "prefetch"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/common", "-p", "test_common_*.py"]], "name": "common-contract"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/common", "-p", "test_security_*.py"], ["python3", "ci/zero_bill_scan.py", "."]], "name": "security"}
+  ]
+}

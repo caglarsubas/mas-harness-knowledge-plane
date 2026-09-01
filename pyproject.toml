@@ -1,0 +1,18 @@
+[build-system]
+requires = []
+build-backend = "planeon_knowledge.common.build_backend"
+backend-path = ["src"]
+
+[project]
+name = "planeon-harness-knowledge-plane"
+version = "0.1.0"
+description = "Offline-first Planeon Knowledge Plane foundation"
+readme = "README.md"
+requires-python = "==3.12.*"
+license = "Apache-2.0"
+dependencies = []
+
+[tool.planeon]
+packet = "KN-001"
+network-default = "disabled"
+business-endpoints = false

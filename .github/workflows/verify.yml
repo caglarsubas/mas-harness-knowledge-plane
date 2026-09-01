@@ -1,0 +1,22 @@
+name: offline-verify
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+    runs-on: [self-hosted, harness-engineering, ephemeral, credential-free]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pinned action
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Enter preinstalled trusted offline launcher
+        run: /opt/planeon/bin/harness-offline-launch

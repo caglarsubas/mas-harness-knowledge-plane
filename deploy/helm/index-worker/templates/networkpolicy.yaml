@@ -1,0 +1,12 @@
+{{- if .Values.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planeon-index-worker-deny-all
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: planeon-index-worker}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+{{- end }}

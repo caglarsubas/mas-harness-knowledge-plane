@@ -1,0 +1,12 @@
+{{- if .Values.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planeon-retrieval-service-deny-all
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: planeon-retrieval-service}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+{{- end }}

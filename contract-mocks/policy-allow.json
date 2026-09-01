@@ -1,0 +1,13 @@
+{
+  "allowed": true,
+  "decisionId": "22222222-2222-4222-8222-222222222222",
+  "evaluatedAt": "2030-01-01T00:00:00Z",
+  "expiresAt": "2030-01-01T00:00:30Z",
+  "obligations": [],
+  "organizationId": "11111111-1111-4111-8111-111111111111",
+  "policyDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "reasonCode": "FOUNDATION_ALLOW",
+  "requestDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "schemaVersion": "harness.planeon.ai/policy-decision/v1alpha1",
+  "subjectId": "synthetic-subject"
+}

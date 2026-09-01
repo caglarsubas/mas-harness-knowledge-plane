@@ -1,0 +1,12 @@
+{{- if .Values.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: planeon-ingest-worker-deny-all
+spec:
+  podSelector:
+    matchLabels: {app.kubernetes.io/name: planeon-ingest-worker}
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress: []
+{{- end }}

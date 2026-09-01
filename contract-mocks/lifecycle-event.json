@@ -1,0 +1,32 @@
+{
+  "data": {
+    "actor": {"id": "system.knowledge", "type": "SYSTEM"},
+    "aggregateId": "source.synthetic",
+    "aggregateKind": "EvidenceRecord",
+    "aggregateVersion": 1,
+    "causationId": null,
+    "correlationId": "88888888-8888-4888-8888-888888888888",
+    "evidenceRefs": [],
+    "reasonCode": "FOUNDATION_RECORDED",
+    "resourceRefs": [
+      {
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "id": "source.synthetic",
+        "kind": "source.reference"
+      }
+    ],
+    "schemaVersion": "harness.planeon.ai/event-data/v1alpha1",
+    "transition": {"from": "PENDING", "to": "RECORDED"}
+  },
+  "datacontenttype": "application/json",
+  "dataschema": "https://harness.planeon.ai/schemas/v1alpha1/events/harness-cloud-event.schema.json",
+  "id": "66666666-6666-4666-8666-666666666666",
+  "organizationid": "organization.synthetic",
+  "partitionkey": "organization.synthetic",
+  "sequence": 1,
+  "source": "urn:planeon:harness:knowledge.mock",
+  "specversion": "1.0",
+  "subject": "source.synthetic",
+  "time": "2030-01-01T00:00:02Z",
+  "type": "harness.evidence.state.changed.v1"
+}
