@@ -4,6 +4,7 @@ import ast
 import hashlib
 import json
 import re
+import subprocess
 import tomllib
 import unittest
 from pathlib import Path
@@ -225,6 +226,25 @@ class SqlAndDeploymentContractTests(unittest.TestCase):
         rendered = json.dumps(descriptor)
         self.assertNotRegex(rendered, r'"(?:sh|bash|zsh)",\s*"-c"')
         self.assertNotIn("prefetch.py", rendered)
+
+    def test_workflow_changes_only_to_full_public_history(self) -> None:
+        predecessor = "187a3d6234d7e53392acc6984221fa314d40cf93"
+        completed = subprocess.run(
+            ["git", "show", f"{predecessor}:.github/workflows/verify.yml"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            shell=False,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        expected = completed.stdout.replace("fetch-depth: 2", "fetch-depth: 0")
+        current = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
+        self.assertEqual(current, expected)
+        self.assertIn("actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683", current)
+        self.assertIn("persist-credentials: false", current)
+        self.assertIn("runs-on: [self-hosted, harness-engineering, ephemeral, credential-free]", current)
+        self.assertNotIn("ubuntu-latest", current)
 
 
 if __name__ == "__main__":
