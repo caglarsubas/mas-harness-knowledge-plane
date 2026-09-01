@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "f3a3463d2fe04d4b17dc3abbebc6b3375bd6d890"
+FOUNDATION = "672e73e512113fbf2bb96c222b2ffea7f58e79ed"
 EXPECTED_LOCKS = {
     "base": {"commit": BASE, "repository": "mas-harness-knowledge-plane"},
     "contracts": {
@@ -67,8 +68,8 @@ def main() -> None:
     require(sys.version_info[:3] == (3, 12, 14), f"CPython 3.12.14 required, got {sys.version.split()[0]}")
     locks = json.loads((ROOT / "contract-mocks/upstream-locks.json").read_text(encoding="utf-8"))
     require(locks == EXPECTED_LOCKS, "immutable predecessor lock mismatch")
-    require(git("cat-file", "-e", f"{BASE}^{{commit}}").returncode == 0, "empty base commit is unavailable")
-    require(git("merge-base", "--is-ancestor", BASE, "HEAD").returncode == 0, "HEAD is not descended from the exact empty base")
+    require(git("cat-file", "-e", f"{FOUNDATION}^{{commit}}").returncode == 0, "KN-001 foundation commit is unavailable")
+    require(git("merge-base", "--is-ancestor", FOUNDATION, "HEAD").returncode == 0, "HEAD is not descended from the exact KN-001 foundation")
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     require(project["project"]["requires-python"] == "==3.12.*", "Python contract drift")
     require(project["project"]["dependencies"] == [], "KN-001 must have no dependency")

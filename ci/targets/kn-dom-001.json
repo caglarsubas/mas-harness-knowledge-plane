@@ -1,0 +1,10 @@
+{
+  "packetId": "KN-DOM-001",
+  "schemaVersion": "harness.planeon.ai/make-target-descriptor/v1alpha1",
+  "targets": [
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "services/domain-service/prefetch.py"]], "name": "prefetch"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/domain", "-p", "test_domain_*.py"]], "name": "domain-contract"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/domain", "-p", "test_white_goods_*.py"]], "name": "white-goods-domain-parity"},
+    {"acceptedVariables": {}, "argvTemplate": [["python3", "-m", "unittest", "discover", "-s", "tests/domain", "-p", "test_security_*.py"]], "name": "security"}
+  ]
+}

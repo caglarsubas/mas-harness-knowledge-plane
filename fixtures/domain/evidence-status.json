@@ -1,0 +1,16 @@
+{
+  "artifactSbom": "PENDING_FUTURE_PACKET",
+  "assurance": "PENDING",
+  "deployment": "NOT_RUN_ENV_UNAVAILABLE",
+  "kubernetesOpenShift": "NOT_RUN_ENV_UNAVAILABLE",
+  "liveSecurity": "NOT_RUN_ENV_UNAVAILABLE",
+  "merge": "PENDING_EXTERNAL_STATE",
+  "offlineContractUnit": "PENDING_SIGNED_RUN",
+  "postgresql": "NOT_RUN_ENV_UNAVAILABLE",
+  "pullRequest": "PENDING_EXTERNAL_STATE",
+  "releaseSignature": "PENDING_FUTURE_PACKET",
+  "runtime": "NOT_RUN_ENV_UNAVAILABLE",
+  "schemaVersion": "planeon.knowledge.evidence-axes/v1",
+  "source": "IMPLEMENTED_UNDER_REVIEW",
+  "tenantAcceptance": "PENDING_TENANT_AUTHORITY"
+}

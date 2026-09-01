@@ -8,6 +8,9 @@ policy:
   existingConfigMap: ""
 ownedStore:
   existingSecret: ""
+semanticProvider:
+  existingConfigMap: ""
+  bundleDigest: ""
 telemetry:
   enabled: false
   existingConfigMap: ""

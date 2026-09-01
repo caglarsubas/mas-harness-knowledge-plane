@@ -4,6 +4,7 @@ FROM ${BASE_IMAGE}
 WORKDIR /app
 COPY --chown=65532:65532 src/ /app/src/
 COPY --chown=65532:65532 services/domain-service/app.py /app/service/app.py
+COPY --chown=65532:65532 services/domain-service/dependencies.lock.json /app/service/dependencies.lock.json
 ENV PYTHONPATH=/app/src PYTHONDONTWRITEBYTECODE=1
 USER 65532:65532
 ENTRYPOINT ["python3","/app/service/app.py"]

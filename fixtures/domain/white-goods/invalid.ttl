@@ -1,0 +1,4 @@
+@prefix wg: <urn:planeon:white-goods.enterprise:> .
+
+wg:objective.owner-missing a wg:BusinessObjective .
+wg:model.family-missing a wg:ProductModel .

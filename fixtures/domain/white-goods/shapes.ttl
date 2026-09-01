@@ -1,0 +1,26 @@
+@prefix wg: <urn:planeon:white-goods.enterprise:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+wg:BusinessObjectiveShape a sh:NodeShape ;
+  sh:targetClass wg:BusinessObjective ;
+  sh:property [ sh:path wg:hasOwner ; sh:minCount 1 ; sh:class wg:AccountableRole ] .
+
+wg:ProductModelShape a sh:NodeShape ;
+  sh:targetClass wg:ProductModel ;
+  sh:property [ sh:path wg:hasProductFamily ; sh:minCount 1 ; sh:class wg:ProductFamily ] .
+
+wg:ProcessStepShape a sh:NodeShape ;
+  sh:targetClass wg:ProcessStep ;
+  sh:property [ sh:path wg:hasCTQ ; sh:minCount 1 ; sh:class wg:CriticalToQuality ] .
+
+wg:CriticalToQualityShape a sh:NodeShape ;
+  sh:targetClass wg:CriticalToQuality ;
+  sh:property [ sh:path wg:hasKPI ; sh:minCount 1 ; sh:class wg:KeyPerformanceIndicator ] .
+
+wg:KeyPerformanceIndicatorShape a sh:NodeShape ;
+  sh:targetClass wg:KeyPerformanceIndicator ;
+  sh:property [ sh:path wg:hasOutcome ; sh:minCount 1 ; sh:class wg:AcceptanceOutcome ] .
+
+wg:AcceptanceOutcomeShape a sh:NodeShape ;
+  sh:targetClass wg:AcceptanceOutcome ;
+  sh:property [ sh:path wg:hasEvidence ; sh:minCount 1 ; sh:class wg:EvidenceClass ] .
